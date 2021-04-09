@@ -20,7 +20,7 @@ import (
 )
 
 func createAPIToken() error {
-	err := browser.OpenURL("https://eu.api.ovh.com/createToken/?GET=/me/bill&GET=/me/bill/*&GET=/me/deposit&GET=/me/deposit/*&GET=/me/order&GET=/me/order/*")
+	err := browser.OpenURL("https://eu.api.ovh.com/createToken/?GET=/me/bill&GET=/me/bill/*&GET=/me/deposit&GET=/me/deposit/*&GET=/me/order&GET=/me/order/*&GET=/me/refund&GET=/me/refund/*")
 	return err
 }
 
@@ -32,6 +32,15 @@ type priceStruct struct {
 
 type billResponse struct {
 	BillID       string      `json:"billId"`
+	PdfURL       string      `json:"pdfUrl"`
+	Date         string      `json:"date"`
+	Price        priceStruct `json:"priceWithoutTax"`
+	Tax          priceStruct `json:"tax"`
+	PriceWithTax priceStruct `json:"priceWithTax"`
+}
+
+type refundResponse struct {
+	RefundID     string      `json:"refundId"`
 	PdfURL       string      `json:"pdfUrl"`
 	Date         string      `json:"date"`
 	Price        priceStruct `json:"priceWithoutTax"`
@@ -192,6 +201,45 @@ func downloadInvoices(c *cli.Context) error {
 		}
 	}
 
+	refunds := []string{}
+	err = ovhapi.Get("/me/refund?date.from="+url.QueryEscape(firstday.Format("2006-01-02T15:04:05Z07:00"))+"&date.to="+url.QueryEscape(lastday.Format("2006-01-02T15:04:05Z07:00")), &refunds)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, refundID := range refunds {
+			refund := refundResponse{}
+			err := ovhapi.Get("/me/refund/"+refundID, &refund)
+			if err == nil {
+				totalPrice += refund.Price.Value
+				totalPriceWithTax += refund.PriceWithTax.Value
+				totalTax += refund.Tax.Value
+				row = []string{
+					refund.RefundID,
+					refund.Date[8:10] + "/" + refund.Date[5:7] + "/" + refund.Date[:4],
+					strings.Replace(fmt.Sprintf("%.2f", refund.Price.Value), ".", ",", -1),
+					strings.Replace(fmt.Sprintf("%.2f", refund.Tax.Value), ".", ",", -1),
+					strings.Replace(fmt.Sprintf("%.2f", refund.PriceWithTax.Value), ".", ",", -1),
+					"",
+				}
+				billsCSV = append(billsCSV, row)
+				file := cwd + "/" + dir + "/" + year + "/" + month + "/" + refundID + ".pdf"
+				if _, err := os.Stat(file); err != nil {
+					if os.IsNotExist(err) {
+						resp, err := http.Get(refund.PdfURL)
+						if err == nil {
+							f, err := os.Create(file)
+							if err == nil {
+								io.Copy(f, resp.Body)
+								f.Close()
+							}
+							resp.Body.Close()
+						}
+					}
+				}
+			}
+		}
+	}
+
 	row = []string{
 		"Totaux",
 		"",
@@ -222,7 +270,7 @@ func main() {
 	app.Name = "OVH download invoice"
 	app.Author = "Julien Issler"
 	app.Email = "julien@issler.net"
-	app.Version = "0.2.0"
+	app.Version = "0.3.0"
 
 	now := time.Now()
 
