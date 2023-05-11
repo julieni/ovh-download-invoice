@@ -23,9 +23,16 @@ import (
 	"github.com/urfave/cli"
 )
 
-func createAPIToken() error {
-	err := browser.OpenURL("https://eu.api.ovh.com/createToken/?GET=/me/bill&GET=/me/bill/*&GET=/me/deposit&GET=/me/deposit/*&GET=/me/order&GET=/me/order/*&GET=/me/refund&GET=/me/refund/*")
-	return err
+func createAPIToken(endpoint string) error {
+	if ovh.Endpoints[endpoint] == "" {
+		return errors.New("endpoint not supported")
+	}
+	urfInfo, error := url.Parse(ovh.Endpoints[endpoint])
+	if error != nil {
+		return error
+	}
+	error = browser.OpenURL("https://" + urfInfo.Hostname() + "/createToken/?GET=/me/bill&GET=/me/bill/*&GET=/me/deposit&GET=/me/deposit/*&GET=/me/order&GET=/me/order/*&GET=/me/refund&GET=/me/refund/*")
+	return error
 }
 
 type priceStruct struct {
@@ -71,7 +78,7 @@ func downloadInvoices(c *cli.Context) error {
 	cwd, _ := os.Getwd()
 	_, error := os.Stat(cwd + "/" + dir)
 	if error != nil {
-		return errors.New("Folder " + cwd + "/" + dir + " does not exist")
+		return errors.New("folder " + cwd + "/" + dir + " does not exist")
 	}
 
 	_, error = os.Stat(cwd + "/" + dir + "/" + year + "/" + month)
@@ -79,7 +86,7 @@ func downloadInvoices(c *cli.Context) error {
 		if os.IsNotExist(error) {
 			error := os.MkdirAll(cwd+"/"+dir+"/"+year+"/"+month, 0777)
 			if error != nil {
-
+				return errors.New("could not create subfolder " + cwd + "/" + dir + "/" + year + "/" + month)
 			}
 		}
 	}
@@ -281,9 +288,7 @@ func downloadInvoices(c *cli.Context) error {
 
 func main() {
 
-	dotEnvError := godotenv.Load()
-	if dotEnvError != nil {
-	}
+	godotenv.Load()
 
 	app := cli.NewApp()
 	app.Name = "OVH download invoice"
@@ -307,7 +312,7 @@ func main() {
 		}
 
 		if result == "init" {
-			return createAPIToken()
+			return createAPIToken(c.String("ovh-endpoint"))
 		}
 		if result == "download" {
 			prompt := promptui.Prompt{
@@ -315,8 +320,8 @@ func main() {
 				Default:   c.String("year"),
 				AllowEdit: true,
 				Validate: func(input string) error {
-					if regexp.MustCompile("^2[0-9]{3}$").MatchString(input) == false {
-						return errors.New("Wrong year")
+					if !regexp.MustCompile("^2[0-9]{3}$").MatchString(input) {
+						return errors.New("wrong year")
 					}
 					return nil
 				},
@@ -330,13 +335,13 @@ func main() {
 				Default:   c.String("month"),
 				AllowEdit: true,
 				Validate: func(input string) error {
-					if regexp.MustCompile("^(0|1)[0-9]$").MatchString(input) == false {
-						return errors.New("Wrong month")
+					if !regexp.MustCompile("^(0|1)[0-9]$").MatchString(input) {
+						return errors.New("wrong month")
 					}
 					if month, err := strconv.Atoi(input); err != nil {
-						return errors.New("Wrong month")
+						return errors.New("wrong month")
 					} else if month < 1 || month > 12 {
-						return errors.New("Wrong month")
+						return errors.New("wrong month")
 					}
 					return nil
 				},
@@ -404,7 +409,7 @@ func main() {
 		{
 			Name: "init",
 			Action: func(c *cli.Context) error {
-				err := createAPIToken()
+				err := createAPIToken(c.String("ovh-endpoint"))
 				return err
 			},
 		},
