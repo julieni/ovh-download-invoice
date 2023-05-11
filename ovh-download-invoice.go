@@ -294,9 +294,11 @@ func main() {
 	app.Name = "OVH download invoice"
 	app.Author = "Julien Issler"
 	app.Email = "julien@issler.net"
-	app.Version = "0.4.0"
+	app.Version = "0.5.0"
 
-	now := time.Now()
+	location, _ := tz.LoadLocation("Europe/Paris")
+	year, month, _ := time.Now().Date()
+	period := time.Date(year, month, 0, 0, 0, 0, 0, location)
 
 	app.Action = func(c *cli.Context) error {
 		sel := promptui.Select{
@@ -393,13 +395,13 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "year",
-			Value:  now.Format("2006"),
+			Value:  period.Format("2006"),
 			Usage:  "From date",
 			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:   "month",
-			Value:  now.Format("01"),
+			Value:  period.Format("01"),
 			Usage:  "To date",
 			Hidden: true,
 		},
@@ -452,12 +454,12 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:  "year",
-					Value: now.Format("2006"),
+					Value: period.Format("2006"),
 					Usage: "From date",
 				},
 				cli.StringFlag{
 					Name:  "month",
-					Value: now.Format("01"),
+					Value: period.Format("01"),
 					Usage: "To date",
 				},
 			},
