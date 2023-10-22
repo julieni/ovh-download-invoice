@@ -140,7 +140,7 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(deposit.PdfURL)
-						if err == nil {
+						if err == nil && resp.StatusCode == 200 {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
@@ -213,7 +213,7 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(bill.PdfURL)
-						if err == nil {
+						if err == nil && resp.StatusCode == 200 {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
@@ -251,7 +251,7 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(refund.PdfURL)
-						if err == nil {
+						if err == nil && resp.StatusCode == 200 {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
