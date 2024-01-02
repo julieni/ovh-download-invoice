@@ -140,13 +140,15 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(deposit.PdfURL)
-						if err == nil && resp.StatusCode == 200 {
+						if err == nil && resp.StatusCode == 200 && resp.Header.Get("Content-Type") == "application/pdf" {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
 								f.Close()
 							}
 							resp.Body.Close()
+						} else {
+							fmt.Println("\n" + "Failed to download " + year + "/" + month + "/" + depositID + ".pdf")
 						}
 					}
 				}
@@ -213,13 +215,15 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(bill.PdfURL)
-						if err == nil && resp.StatusCode == 200 {
+						if err == nil && resp.StatusCode == 200 && resp.Header.Get("Content-Type") == "application/pdf" {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
 								f.Close()
 							}
 							resp.Body.Close()
+						} else {
+							fmt.Println("\n" + "Failed to download " + year + "/" + month + "/" + billID + ".pdf")
 						}
 					}
 				}
@@ -251,7 +255,7 @@ func downloadInvoices(c *cli.Context) error {
 				if _, err := os.Stat(file); err != nil {
 					if os.IsNotExist(err) {
 						resp, err := http.Get(refund.PdfURL)
-						if err == nil && resp.StatusCode == 200 {
+						if err == nil && resp.StatusCode == 200 && resp.Header.Get("Content-Type") == "application/pdf" {
 							f, err := os.Create(file)
 							if err == nil {
 								io.Copy(f, resp.Body)
@@ -259,6 +263,8 @@ func downloadInvoices(c *cli.Context) error {
 							}
 							resp.Body.Close()
 						}
+					} else {
+						fmt.Println("\n" + "Failed to download " + year + "/" + month + "/" + refundID + ".pdf")
 					}
 				}
 			}
